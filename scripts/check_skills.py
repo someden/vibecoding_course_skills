@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 RESOURCE = re.compile(r"(?<![\w./])(?:\.\.?/)*(?:references|agents)/[\w./-]+\.(?:md|json|yaml|py|sh)")
 LINK = re.compile(r"\[[^\]\n]*\]\(([^)\s]+)\)")
+# argument-hint is Claude Code's slash-menu hint. Codex and OpenCode loaders skip
+# unknown fields; only Codex's sample quick_validate.py rejects it (docs/portability.md).
+SKILL_FIELDS = {"name", "description", "argument-hint"}
 
 
 def require(condition, message):
@@ -70,6 +73,8 @@ def check(skills_dir):
     with tempfile.TemporaryDirectory(prefix="vibecoding-skills-check-") as directory:
         for entry in entries:
             fields = frontmatter(entry)
+            require(set(fields) <= SKILL_FIELDS,
+                    f"{entry}: unexpected fields {sorted(set(fields) - SKILL_FIELDS)}")
             name = fields["name"]
             require(entry.parent.name == name, f"{entry}: name differs from directory")
             require(name not in names, f"Duplicate skill: {name}")
